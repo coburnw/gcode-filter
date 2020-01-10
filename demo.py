@@ -33,16 +33,12 @@ class Parameters():
         
         return self.params[key]
 
-    def update(self, params):
-        self.params.clear()
-        for param in params:
-            key = param[:1]
-            value = param[1:]
-            self.params[key] = value
+    def update(self, param_dict):
+        self.params = param_dict
         self.segment.update(self.params)
         return
 
-class Command():
+class FileCommand():
     def __init__(self):
         self.action = ''
         self.line_params = Parameters()
@@ -58,7 +54,14 @@ class Command():
         params = line.split()
         self.action = params.pop(0)
         self.line_params.action = self.action
-        self.line_params.update(params)
+
+        param_dict = dict()
+        for param in params:
+            key = param[:1]
+            value = param[1:]
+            param_dict[key] = value
+        self.line_params.update(param_dict)
+        
         return
     
     def AppendActionFilter(self, action_filter, **kwargs):
@@ -70,7 +73,7 @@ class Command():
 class FileSource(): #filters.Source?
     def __init__(self, f):
         self.f = f
-        self.command = Command()
+        self.command = FileCommand()
         
     def __iter__(self):
         return self
@@ -88,7 +91,7 @@ if __name__ == '__main__':
         feed_rate_mode = 'G93'
         
         lines = FileSource(f)
-        #lines = FeedRateFilter(lines, feed_rate_mode)
+        
         lines.command.AppendParameterFilter(filters.TranslateFilter, src='yzb', dst='zxc')
         lines.command.AppendParameterFilter(filters.UnitsFilter, to='in')
         lines.command.AppendParameterFilter(filters.FeedRateFilter, feed_rate_mode='G93')
