@@ -85,32 +85,42 @@ class FeedRateFilter(Filter):
 
     
 class TranslateFilter(Filter):
-    def _key_filter(self, key):
-        matrix = dict()
-        if 'src' in self.kwargs and 'dst' in self.kwargs:
-            i = 0
-            dst_str = self.kwargs['dst']
-            src_str = iter(self.kwargs['src'])
-            for dst in dst_str:
-                src = next(src_str)
-                matrix[dst.upper()] = src.upper()
+    def _init(self, **kwargs):
+        self.translate = dict()
 
-        if key in matrix:
-            key = matrix[key]
+        try:
+            src_str = kwargs['src']
+            dst_str = kwargs['dst']
+        except:
+            src_str = None
+            dst_str = None
+        finally:
+            if src_str and dst_str:
+                for i, dst in enumerate(dst_str):
+                    src = src_str[i]
+                    self.translate[dst.upper()] = src.upper()
+
+        return
+
+    def _key_filter(self, key):
+        if key in self.translate:
+            key = self.translate[key]
         return key
 
     
 class UnitsFilter(Filter):
+    def _init(self, **kwargs):
+        if 'to' not in kwargs:
+            self.distance_factor = 1.0
+        elif kwargs['to'] == 'mm':
+            self.distance_factor = 25.4
+        elif kwargs['to'] == 'in':
+            self.distance_factor = 1/25.5
+        return
+    
     def _value_filter(self, key, value):
-        if 'to' not in self.kwargs:
-            distance_factor = 1
-        elif self.kwargs['to'] == 'mm':
-            distance_factor = 24.4
-        elif self.kwargs['to'] == 'in':
-            distance_factor = 1/24.5
-            
         if key in ['X', 'Y', 'Z']:
-            value = float(value) * distance_factor
+            value = float(value) * self.distance_factor
         elif key in ['A', 'B', 'C']:
             value = float(value)
         elif key in ['F']:
@@ -130,25 +140,26 @@ class IterFilter(Filter):
         return self
 
     def __next__(self):
-        while True:
-            key = next(self.key_order)
+        for key in self.key_order:
             if key in self.inner:
                 return key, self.inner[key]
-
+        raise StopIteration
 
 class StringFilter(Filter):
+    def _init(self, **kwargs):
+        self.precision_string = '.' + str(kwargs['precision']) + 'f'
+
     def _value_filter(self, key, value):
-        precision_string = '.' + str(self.kwargs['precision']) + 'f'
         if key in ['X', 'Y', 'Z']:
-            string = format(float(value), precision_string)
+            value = format(float(value), self.precision_string)
         elif key in ['A', 'B', 'C']:
-            string = format(float(value), precision_string)
+            value = format(float(value), self.precision_string)
         elif key in ['F']:
-            string = format(float(value), precision_string)
+            value = format(float(value), self.precision_string)
         elif key in ['T', 'H', 'D', 'S']:
-            string = str(int(value))
+            value = str(int(value))
         else:
-            string = value
-        return string
+            pass
+        return value
 
     
