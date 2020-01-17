@@ -71,7 +71,7 @@ class Segment:
     
     def arc_length(self, axis_name):
         # here we asume the axis rotates around axis_name with Z being the radius
-        if axis_name not  in ['A', 'B']:
+        if axis_name not  in ['A', 'B', 'C']:
             return None
         if axis_name not in self.p1.coords or axis_name not in self.p0.coords:
             return 0    
@@ -87,15 +87,14 @@ class Segment:
             result = self.cart_length(axis_name)
         elif axis_name in ['A', 'B', 'C']:
             result = self.arc_length(axis_name)
-        elif axis_name == 'R':
+        elif axis_name == 'R': #resultant
+            # this is a pretty simplistic view of the problem...
             da = self.arc_length('B')
-            if da == 0.0:
-                da = self.cart_length('Z')
-            dc = self.cart_length('Y')
+            dc = math.sqrt(self.cart_length('X')**2 + self.cart_length('Y')**2 + self.cart_length('Z')**2)
             r_len = math.sqrt((da)**2 + (dc)**2)
             result = r_len
             
-        return result #Units.Quantity(result, FreeCAD.Units.Length)
+        return result
     
     def velocity(self):
         if 'F' in self.p1.coords:
@@ -106,12 +105,11 @@ class Segment:
             velocity = 0.0
 
         return velocity
-        #return Units.Quantity(velocity, FreeCAD.Units.Velocity)
     
     def duration(self):
-        t = self.length() / self.velocity()
-        #time = Units.Quantity(t, FreeCAD.Units.TimeSpan)
-
-        return t
+        if self.velocity() == 0:
+            return 0
+        
+        return self.length() / self.velocity()
 
 

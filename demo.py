@@ -4,8 +4,10 @@ import segment as segment
 class Parameters():
     def __init__(self):
         self.action = ''
+        self.feedRateMode = ''
+        self.lengthUnits = ''
+
         self.params = dict()
-        self.p_iter = None
         self.p_items = []
         
         firstmove = {"X": -1, "Y": -1, "Z": -1, "F": 0.0}
@@ -24,7 +26,11 @@ class Parameters():
         return key in self.params
 
     def __getitem__(self, key):
-        if key == 'action':
+        if key == 'length_units':
+            return self.lengthUnits
+        elif key == 'feed_rate_mode':
+            return self.feedRateMode
+        elif key == 'action':
             return self.action
         elif key == 'segment_length':
             return self.segment.length()
@@ -42,6 +48,8 @@ class FileCommand():
     def __init__(self):
         self.action = ''
         self.line_params = Parameters()
+        self.line_params.lengthUnits = 'G23' #mm
+        self.line_params.feedRateMode = 'G94' #mm/min
         self.parameters = self.line_params
 
     def __repr__(self):
@@ -59,9 +67,11 @@ class FileCommand():
         for param in params:
             key = param[:1]
             value = param[1:]
+            if key == 'F':
+                value = float(value) * 60
             param_dict[key] = value
+
         self.line_params.update(param_dict)
-        
         return
     
     def AppendActionFilter(self, action_filter, **kwargs):

@@ -65,21 +65,24 @@ class FeedRateFilter(Filter):
         return value
     
     def feed_rate_mode(self, mode):
-        if mode in ['G93', 'G94', 'G95']:
+        if mode in ['G93', 'G94']:
             self.fmode = mode
+        elif mode == 'G95':
+            raise NotImplementedError
         else:
             raise NameError
-
+        return
+    
     def get_feed_rate(self, value):
-        if self.fmode == 'G95':
-            raise NotImplementedError
-        elif self.fmode == 'G93' and self.inner['action'] in ['G1', 'G2', 'G3']:
+        if self.inner['feed_rate_mode'] == self.fmode:
+            f_value = value
+        elif (self.fmode == 'G93') and (self.inner['action'] in ['G1', 'G2', 'G3']):
             duration = self.inner['segment_duration']
-            if duration == 0:
-                duration = 1.0
+            if duration < 0.00016667:
+                duration = 0.00016667
             f_value = 1 / duration
-        else: #assume g94
-            f_value =  value
+        else:
+            f_value = value
 
         return f_value
 
@@ -99,7 +102,6 @@ class TranslateFilter(Filter):
                 for i, dst in enumerate(dst_str):
                     src = src_str[i]
                     self.translate[dst.upper()] = src.upper()
-
         return
 
     def _key_filter(self, key):
@@ -115,7 +117,7 @@ class UnitsFilter(Filter):
         elif kwargs['to'] == 'mm':
             self.distance_factor = 25.4
         elif kwargs['to'] == 'in':
-            self.distance_factor = 1/25.5
+            self.distance_factor = 1/25.4
         return
     
     def _value_filter(self, key, value):
@@ -124,8 +126,8 @@ class UnitsFilter(Filter):
         elif key in ['A', 'B', 'C']:
             value = float(value)
         elif key in ['F']:
-            value = float(value)
-        
+            if self.inner['feed_rate_mode'] == 'G94':
+                value = float(value) * self.distance_factor        
         return value
 
         
